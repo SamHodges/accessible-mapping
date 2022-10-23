@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Add a line to a map using a GeoJSON source</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1Ijoic2hvZGdlczIzIiwiYSI6ImNsODE0MjlibDAzcjgzb251c2lhb241NW4ifQ.MaT8KKreBHbWDZYCaAmSnQ';
+const map = new mapboxgl.Map({
+container: 'map',
+// Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+style: 'mapbox://styles/mapbox/streets-v11',
+center: [-72.51544,42.37144],
+zoom: 15
+});
+ 
+map.on('load', () => {
+map.addSource('route', {
+'type': 'geojson',
+'data': {
+'type': 'Feature',
+'properties': {},
+'geometry': {
+'type': 'LineString',
+'coordinates': [
+[-72.51509,42.37124],
+[-72.514843, 42.371155],
+[-72.514583, 42.371217],
+[-72.514443, 42.371212],
+[-72.514287, 42.371093],
+[-72.514169, 42.370833],
+[-72.514213, 42.370646],
+[-72.514438, 42.370549],
+[-72.514602, 42.370593],
+[-72.514795, 42.370848],
+[-72.514833, 42.371007],
+[-72.514727, 42.371131],
+[-72.514583, 42.371217]
+]
+}
+}
+});
+map.addLayer({
+'id': 'route',
+'type': 'line',
+'source': 'route',
+'layout': {
+'line-join': 'round',
+'line-cap': 'round'
+},
+'paint': {
+'line-color': '#888',
+'line-width': 8
+}
+});
+});
+</script>
