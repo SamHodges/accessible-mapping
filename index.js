@@ -7,7 +7,7 @@ const map = new mapboxgl.Map({
   container: 'map', //div id for where it's going
   // TODO: dark mode?
   style: 'mapbox://styles/mapbox/streets-v11', // color style for map
-  center: [-72.516831266, 42.36916519], // starting position (Lat, long)
+  center: [-72.516831266, 42.36916519], // center position (Lat, long)
   zoom: 13 //zoom ratio- 0 is entire world, max is 24
 });
 
@@ -25,45 +25,74 @@ const directions = new MapboxDirections({
 map.addControl(directions, 'top-left');
 
 //load barriers
-const stairs = {
+const stairs_keefe_hill = {
   type: 'FeatureCollection',
   features: [
     {
       type: 'Feature',
       geometry: {
         type: 'Point',
-        coordinates: [-72.51544,42.37144]
+        coordinates: [-72.51544,42.37142]
       },
       properties: {
-        amount: 5
+        amount: 5,
+        id: "stairs_keefe_hill",
+        barrier_type: "stairs",
+        alternatives: [-72.51544,42.37156]
       }
     }
   ]
 };
 
-var alternatives = {};
-alternatives["-72.51544,42.37144"] = [-72.515358, 42.371611];
+const steep_hill_keefe = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [-72.51544,42.37156]
+      },
+      properties: {
+        amount: 5,
+        id: "steep_hill_keefe",
+        barrier_type: "steep",
+        alternatives: [-72.51544,42.37142]
+      }
+    }
+  ]
+};
+
+barriers = [stairs_keefe_hill];//, steep_hill_keefe];
 
 // change into a turf object (unit is how far away we want to take into account avoidance)
-const obstacle = turf.buffer(stairs, 0.005, { units: 'kilometers' });
+obstacles = [];
+for (i=0; i<barriers.length; i++){
+  current_obstacle = turf.buffer(barriers[i], 0.005, { units: 'kilometers' });
+  obstacles.push(current_obstacle);
+}
 
+var routeLine; 
 
 // show obstacles on load
 map.on('load', function(){
-  map.addLayer({
-    id: 'stairs',
-    type: 'fill',
-    source: {
-      type: 'geojson',
-      data: obstacle
-    },
-    layout: {},
-    paint: {
-      'fill-color': '#f03b20',
-      'fill-opacity': 0.5,
-      'fill-outline-color': '#f03b20'
-    }
-  });
+  for (i=0; i<barriers.length; i++){
+    console.log(barriers[i]["features"][0]);
+    map.addLayer({
+      id: barriers[i]["features"][0]["properties"]["id"],
+      type: 'fill',
+      source: {
+        type: 'geojson',
+        data: obstacles[i]
+      },
+      layout: {},
+      paint: {
+        'fill-color': '#f03b20',
+        'fill-opacity': 0.5,
+        'fill-outline-color': '#f03b20'
+      }
+    });
+  }
 
   // get multiple routes back and show them
   for (let i = 0; i < 3; i++) {
@@ -119,14 +148,20 @@ directions.on('route', (event) => {
     map.setLayoutProperty(`route${route.id}`, 'visibility', 'visible');
 
     // get coordinate data for it
-    const routeLine = polyline.toGeoJSON(route.geometry);
+    routeLine = polyline.toGeoJSON(route.geometry);
 
     // update data/visual
-    map.getSource(`route${route.id}`).setData(routeLine);
+    //map.getSource(`route${route.id}`).setData(routeLine);
 
-    // TODO: change this to multiple obstacles!
     // check to see if obstacle falls on route
-    const isClear = turf.booleanDisjoint(obstacle, routeLine) === true;
+    isClear = true;
+    issue_points = [];
+    for (i=0; i<obstacles.length; i++){
+      if (turf.booleanDisjoint(obstacles[i], routeLine) === false){
+        isClear = false;
+        issue_points.push(i);
+      }
+    }
 
     // if it does, we're 1 route down
     if (!isClear){numGoodRoutes = numGoodRoutes - 1};
@@ -134,7 +169,7 @@ directions.on('route', (event) => {
     // if we're at 0 routes, time to add a waypoint
     if (numGoodRoutes == 0){
       // TODO: ADD WAYPOINT CALLS
-      //addWaypoints(obstacle);
+      addWaypoints(issue_points);
     }
 
     // make report depending if route is clear
@@ -147,7 +182,7 @@ directions.on('route', (event) => {
     if (isClear) {
       map.setPaintProperty(`route${route.id}`, 'line-color', '#74c476');
     } else {
-      map.setPaintProperty(`route${route.id}`, 'line-color', '#de2d26');
+      map.setPaintProperty(`route${route.id}`, 'line-color', '#000000');
     }
 
     // Add a new report section to the sidebar.
@@ -170,6 +205,43 @@ directions.on('route', (event) => {
   }
 });
 
-// async function addWaypoints(){
+async function addWaypoints(issue_points){
+  const query = await fetch(makeURL(issue_points), {method: 'GET'});
+  const response = await query.json();
 
-// }
+  if (response.code !== 'Ok') {
+    const handleMessage =
+      response.code === 'InvalidInput'
+        ? 'Refresh to start a new route. For more information: https://docs.mapbox.com/api/navigation/optimization/#optimization-api-errors'
+        : 'Try a different point.';
+    alert(`${response.code} - ${response.message}\n\n${handleMessage}`);
+  }
+  
+  for (i=0; i<response["waypoints"].length; i++){
+    waypoint = response["waypoints"][i]["location"];
+    // directions.addWaypoint(i, waypoint);
+  }
+
+}
+
+
+function makeURL(issue_points){
+  coordinate_list = [];
+
+  //push first coordinate
+  coordinate_list.push(routeLine["coordinates"][0]);
+
+  //go through barriers and add alternative routes
+  for (i=0; i<issue_points.length; i++){
+    current_barrier = barriers[issue_points[i]];
+    waypoint = current_barrier["features"][0]["properties"]["alternatives"]
+    coordinate_list.push(waypoint);
+    directions.addWaypoint(i, waypoint);
+  }
+
+  // add end barrier
+  coordinate_list.push(routeLine["coordinates"][routeLine["coordinates"].length -1]);
+
+  return `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
+          )}?overview=full&steps=true&geometries=geojson&source=first&destination=last&roundtrip=false&access_token=${mapboxgl.accessToken}`;
+        }

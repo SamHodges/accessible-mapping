@@ -273,9 +273,12 @@ distributions.push(
  
 // Set the profile to `driving`
 // Coordinates will include the current location of the truck,
+console.log(coordinates);
+console.log(distributions);
+temp = ["1,2"];
 return `https://api.mapbox.com/optimized-trips/v1/mapbox/driving/${coordinates.join(
 ';'
-)}?distributions=${distributions.join(
+)}?distributions=${temp.join(
 ';'
 )}&overview=full&steps=true&geometries=geojson&source=first&access_token=${
 mapboxgl.accessToken
