@@ -35,7 +35,10 @@ const stairs_keefe_hill = {
         coordinates: [-72.51544,42.37142]
       },
       properties: {
-        amount: 5,
+        steepness: 60,
+        stairs: 100,
+        uneven: 0,
+        noise: 30,
         id: "stairs_keefe_hill",
         barrier_type: "stairs",
         alternatives: [-72.51544,42.37156]
@@ -64,6 +67,7 @@ const steep_hill_keefe = {
 };
 
 barriers = [stairs_keefe_hill];//, steep_hill_keefe];
+map_layers = [];
 
 // change into a turf object (unit is how far away we want to take into account avoidance)
 obstacles = [];
@@ -77,6 +81,8 @@ var routeLine;
 // show obstacles on load
 map.on('load', function(){
   for (i=0; i<barriers.length; i++){
+    map_layers.push(barriers[i]["features"][0]["properties"]["id"]); 
+
     console.log(barriers[i]["features"][0]);
     map.addLayer({
       id: barriers[i]["features"][0]["properties"]["id"],
@@ -123,12 +129,14 @@ map.on('load', function(){
 
 
 
+
+
 directions.on('route', (event) => {
   // get the little sidebar thing
-  const reports = document.getElementById('reports');
-  reports.innerHTML = '';
-  const report = reports.appendChild(document.createElement('div'));
-  // Add IDs to the routes
+  // const reports = document.getElementById('reports');
+  // reports.innerHTML = '';
+  // const report = reports.appendChild(document.createElement('div'));
+  // // Add IDs to the routes
   const routes = event.route.map((route, index) => ({
     ...route,
     id: index
@@ -151,7 +159,7 @@ directions.on('route', (event) => {
     routeLine = polyline.toGeoJSON(route.geometry);
 
     // update data/visual
-    //map.getSource(`route${route.id}`).setData(routeLine);
+    map.getSource(`route${route.id}`).setData(routeLine);
 
     // check to see if obstacle falls on route
     isClear = true;
@@ -168,15 +176,8 @@ directions.on('route', (event) => {
 
     // if we're at 0 routes, time to add a waypoint
     if (numGoodRoutes == 0){
-      // TODO: ADD WAYPOINT CALLS
       addWaypoints(issue_points);
     }
-
-    // make report depending if route is clear
-    const collision = isClear ? 'is good!' : 'is bad.';
-    const emoji = isClear ? '✔️' : '⚠️';
-    const detail = isClear ? 'does not go' : 'goes';
-    report.className = isClear ? 'item' : 'item warning';
 
     console.log("paint lines");
     if (isClear) {
@@ -184,24 +185,6 @@ directions.on('route', (event) => {
     } else {
       map.setPaintProperty(`route${route.id}`, 'line-color', '#000000');
     }
-
-    // Add a new report section to the sidebar.
-    console.log("report section");
-    // Assign a unique `id` to the report.
-    report.id = `report-${route.id}`;
-
-    // Add the response to the individual report created above.
-    const heading = report.appendChild(document.createElement('h3'));
-
-    // Set the class type based on clear value.
-    console.log("add report info");
-    heading.className = isClear ? 'title' : 'warning';
-    heading.innerHTML = `${emoji} Route ${route.id + 1} ${collision}`;
-
-    // Add details to the individual report.
-    const details = report.appendChild(document.createElement('div'));
-    details.innerHTML = `This route ${detail} through an avoidance area.`;
-    report.appendChild(document.createElement('hr'));
   }
 });
 
@@ -245,3 +228,95 @@ function makeURL(issue_points){
   return `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
           )}?overview=full&steps=true&geometries=geojson&source=first&destination=last&roundtrip=false&access_token=${mapboxgl.accessToken}`;
         }
+
+
+//sliders
+// connect to sliders
+var steepnessSlider = document.getElementById("steepness-slider");
+var stairsSlider = document.getElementById("stairs-slider");
+var unevenSlider = document.getElementById("uneven-slider");
+var noiseSlider = document.getElementById("noise-slider");
+
+// set initial values
+var steepnessValue = steepnessSlider.value;
+var stairsValue = stairsSlider.value;
+var unevenValue = unevenSlider.value;
+var noiseValue = noiseSlider.value;
+
+
+// keep track of values
+steepnessSlider.oninput = function() {
+  steepnessValue = steepnessSlider.value;
+} 
+
+stairsSlider.oninput = function() {
+  stairsValue = stairsSlider.value;
+} 
+
+unevenSlider.oninput = function() {
+  unevenValue = unevenSlider.value;
+} 
+
+noiseSlider.oninput = function() {
+  noiseValue = noiseSlider.value;
+} 
+
+
+var customMode = document.getElementById("custom-mode");
+var wheelchairMode = document.getElementById("wheelchair-mode");
+var caneMode = document.getElementById("cane-mode");
+
+// buttons for modes
+customMode.onclick = function customMode(){
+  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-small"); 
+  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+  
+  steepnessSlider.value = 50;
+  stairsSlider.value = 50;
+  unevenSlider.value = 50;
+  noiseSlider.value = 50;
+}
+
+wheelchairMode.onclick = function wheelchairMode(){
+  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-small"); 
+  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+
+  steepnessSlider.value = 40;
+  stairsSlider.value = 0;
+  unevenSlider.value = 20;
+  noiseSlider.value = 50;
+}
+
+caneMode.onclick = function caneMode(){
+  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-small"); 
+  
+  steepnessSlider.value = 40;
+  stairsSlider.value = 10;
+  unevenSlider.value = 30;
+  noiseSlider.value = 50;
+}
+
+function recalculateBarriers(){
+  // change into a turf object (unit is how far away we want to take into account avoidance)
+  current_mode_barriers =[];
+  for (i=0; i<barriers.length; i++){
+    if(barriers[i]["features"][0]["properties"]["steepness"] > steepnessValue || 
+      barriers[i]["features"][0]["properties"]["stairs"] > stairsValue ||
+      barriers[i]["features"][0]["properties"]["uneven"] > unevenValue ||
+      barriers[i]["features"][0]["properties"]["noise"] > noiseValue){
+    current_mode_barriers.push(barriers[i]);
+  }
+  }
+
+   for (i=0; i<map_layers.length; i++){
+      map.setLayoutProperty(map_layers[i], 'visibility', 'none');
+    }
+
+    for (i=0; i<current_barriers.length; i++){
+      map.setLayoutProperty(current_mode_barriers[i]["features"][0]["properties"]["id"], 'visibility', 'visible');
+    }
+  }

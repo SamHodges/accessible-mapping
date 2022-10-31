@@ -23,8 +23,11 @@ type="text/css"
 <!-- Turf & Polyline -->
 <script src="https://npmcdn.com/@turf/turf/turf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.js"></script>
+
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
  
 <style>
+/* main body*/
 body {
 color: #404040;
 font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', sans-serif;
@@ -36,23 +39,26 @@ padding: 0;
 box-sizing: border-box;
 }
  
+ /*map*/
 #map {
 position: absolute;
-left: 15%;
+left: 17%;
 top: 0;
 bottom: 0;
-width: 85%;
+width: 82%;
 }
  
 .sidebar {
 position: absolute;
-width: 15%;
+width: 17%;
 height: 100%;
 top: 0;
 left: 0;
 overflow: hidden;
 border-right: 1px solid rgba(0, 0, 0, 0.25);
 }
+
+/*text*/
  
 h1 {
 font-size: 22px;
@@ -69,71 +75,54 @@ a:hover {
 color: #101010;
 }
  
-.heading {
+ /*report sidebar*/
+/*.heading {
 background: #fff;
 border-bottom: 1px solid #eee;
 min-height: 60px;
 line-height: 60px;
 padding: 0 10px;
-}
+}*/
  
-.reports {
-height: 100%;
-overflow: auto;
-padding-bottom: 60px;
-}
+
  
-.reports .item {
-display: block;
-border-bottom: 1px solid #eee;
-padding: 10px;
-text-decoration: none;
+ /*scrollbar*/
+
+ .slidecontainer {
+  width: 90%;
+  margin: auto;
 }
- 
-.reports .item:last-child {
-border-bottom: none;
+
+ .slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 15px;
+  border-radius: 5px;  
+  background: #d3d1f9;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
 }
- 
-.reports .item .title {
-display: block;
-color: #00853e;
-font-weight: 700;
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%; 
+  background: #04AA6D;
+  cursor: pointer;
 }
- 
-.reports .item .warning {
-display: block;
-color: red;
-font-weight: 700;
+
+.slider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #08044f;
+  cursor: pointer;
 }
- 
-.reports .item .title small {
-font-weight: 400;
-}
- 
-.reports .item.active .title,
-.reports .item .title:hover {
-color: #8cc63f;
-}
- 
-.reports .item.active {
-background-color: #f8f8f8;
-}
- 
-::-webkit-scrollbar {
-width: 3px;
-height: 3px;
-border-left: 0;
-background: rgba(0, 0, 0, 0.1);
-}
- 
-::-webkit-scrollbar-track {
-background: none;
-}
- 
-::-webkit-scrollbar-thumb {
-background: #00853e;
-border-radius: 0;
-}
+
 </style>
 </head>
  
@@ -141,9 +130,24 @@ border-radius: 0;
 <div id="map"></div>
 <div class="sidebar">
 <div class="heading">
-<h1>Routes</h1>
-</div>
-<div id="reports" class="reports"></div>
+
+<button class="w3-button w3-blue-grey w3-round-xlarge w3-small" id="custom-mode">Custom</button>
+<button class="w3-button w3-indigo w3-round-xlarge w3-small" id="wheelchair-mode"><img src="./wheelchair.png" height="25" width="100%" alt="Wheelchair mode: auto choose limits based on wheelchair use"></button>
+<button class="w3-button w3-indigo w3-round-xlarge w3-small" id="cane-mode"><img src="./cane.png" height="25" width="100%" alt="Cane modeauto choose limits based on cane use"></button>
+
+
+<div class = "slidecontainer">
+  <p>Steepness</p>
+  <input type="range" min="0" max="100" value="50" class="slider" id="steepness-slider">
+
+  <p>Stairs</p>
+  <input type="range" min="0" max="100" value="50" class="slider" id="stairs-slider">
+
+  <p>Uneven Ground</p>
+  <input type="range" min="0" max="100" value="50" class="slider" id="uneven-slider">
+
+  <p>Noise</p>
+  <input type="range" min="0" max="100" value="50" class="slider" id="noise-slider">
 </div>
  
 <script src='./index.js'></script>
