@@ -247,18 +247,22 @@ var noiseValue = noiseSlider.value;
 // keep track of values
 steepnessSlider.oninput = function() {
   steepnessValue = steepnessSlider.value;
+  recalculateBarriers();
 } 
 
 stairsSlider.oninput = function() {
   stairsValue = stairsSlider.value;
+  recalculateBarriers();
 } 
 
 unevenSlider.oninput = function() {
   unevenValue = unevenSlider.value;
+  recalculateBarriers();
 } 
 
 noiseSlider.oninput = function() {
   noiseValue = noiseSlider.value;
+  recalculateBarriers();
 } 
 
 
@@ -276,6 +280,7 @@ customMode.onclick = function customMode(){
   stairsSlider.value = 50;
   unevenSlider.value = 50;
   noiseSlider.value = 50;
+  recalculateBarriers();
 }
 
 wheelchairMode.onclick = function wheelchairMode(){
@@ -287,6 +292,7 @@ wheelchairMode.onclick = function wheelchairMode(){
   stairsSlider.value = 0;
   unevenSlider.value = 20;
   noiseSlider.value = 50;
+  recalculateBarriers();
 }
 
 caneMode.onclick = function caneMode(){
@@ -298,6 +304,7 @@ caneMode.onclick = function caneMode(){
   stairsSlider.value = 10;
   unevenSlider.value = 30;
   noiseSlider.value = 50;
+  recalculateBarriers();
 }
 
 function recalculateBarriers(){
@@ -316,7 +323,7 @@ function recalculateBarriers(){
       map.setLayoutProperty(map_layers[i], 'visibility', 'none');
     }
 
-    for (i=0; i<current_barriers.length; i++){
+    for (i=0; i<current_mode_barriers.length; i++){
       map.setLayoutProperty(current_mode_barriers[i]["features"][0]["properties"]["id"], 'visibility', 'visible');
     }
   }

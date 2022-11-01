@@ -68,8 +68,12 @@ const steep_hill_keefe = {
 
 barriers = [stairs_keefe_hill];//, steep_hill_keefe];
 map_layers = [];
+current_mode_obstacles = [];
+current_mode_barriers =[];
 
-obstacles = []
+
+// change into a turf object (unit is how far away we want to take into account avoidance)
+obstacles = [];
 for (i=0; i<barriers.length; i++){
   current_obstacle = turf.buffer(barriers[i], 0.005, { units: 'kilometers' });
   obstacles.push(current_obstacle);
@@ -81,6 +85,8 @@ var routeLine;
 map.on('load', function(){
   for (i=0; i<barriers.length; i++){
     map_layers.push(barriers[i]["features"][0]["properties"]["id"]); 
+
+    console.log(barriers[i]["features"][0]);
     map.addLayer({
       id: barriers[i]["features"][0]["properties"]["id"],
       type: 'fill',
@@ -89,14 +95,15 @@ map.on('load', function(){
         data: obstacles[i]
       },
       layout: {
-        'visibility' : 'none'
+        'visibility' : 'visible',
       },
       paint: {
         'fill-color': '#f03b20',
         'fill-opacity': 0.5,
         'fill-outline-color': '#f03b20'
       }
-    }); }
+    });
+  }
 
   // get multiple routes back and show them
   for (let i = 0; i < 3; i++) {
@@ -130,11 +137,8 @@ map.on('load', function(){
 
 
 directions.on('route', (event) => {
-  // get the little sidebar thing
-  // const reports = document.getElementById('reports');
-  // reports.innerHTML = '';
-  // const report = reports.appendChild(document.createElement('div'));
-  // // Add IDs to the routes
+  recalculateBarriers();
+  
   const routes = event.route.map((route, index) => ({
     ...route,
     id: index
@@ -162,8 +166,10 @@ directions.on('route', (event) => {
     // check to see if obstacle falls on route
     isClear = true;
     issue_points = [];
-    for (i=0; i<obstacles.length; i++){
-      if (turf.booleanDisjoint(obstacles[i], routeLine) === false){
+    console.log(current_mode_obstacles);
+    for (i=0; i<current_mode_obstacles.length; i++){
+      if (turf.booleanDisjoint(current_mode_obstacles[i], routeLine) === false){
+        console.log("ISSUE POINT")
         isClear = false;
         issue_points.push(i);
       }
@@ -174,14 +180,9 @@ directions.on('route', (event) => {
 
     // if we're at 0 routes, time to add a waypoint
     if (numGoodRoutes == 0){
+      console.log("adding waypoints!")
       addWaypoints(issue_points);
     }
-
-    // make report depending if route is clear
-    // const collision = isClear ? 'is good!' : 'is bad.';
-    // const emoji = isClear ? '✔️' : '⚠️';
-    // const detail = isClear ? 'does not go' : 'goes';
-    // report.className = isClear ? 'item' : 'item warning';
 
     console.log("paint lines");
     if (isClear) {
@@ -189,24 +190,6 @@ directions.on('route', (event) => {
     } else {
       map.setPaintProperty(`route${route.id}`, 'line-color', '#000000');
     }
-
-    // Add a new report section to the sidebar.
-    console.log("report section");
-    // Assign a unique `id` to the report.
-    // report.id = `report-${route.id}`;
-
-    // Add the response to the individual report created above.
-    // const heading = report.appendChild(document.createElement('h3'));
-
-    // Set the class type based on clear value.
-    console.log("add report info");
-    heading.className = isClear ? 'title' : 'warning';
-    heading.innerHTML = `${emoji} Route ${route.id + 1} ${collision}`;
-
-    // Add details to the individual report.
-    // const details = report.appendChild(document.createElement('div'));
-    // details.innerHTML = `This route ${detail} through an avoidance area.`;
-    // report.appendChild(document.createElement('hr'));
   }
 });
 
@@ -238,7 +221,7 @@ function makeURL(issue_points){
 
   //go through barriers and add alternative routes
   for (i=0; i<issue_points.length; i++){
-    current_barrier = barriers[issue_points[i]];
+    current_barrier = current_mode_barriers[issue_points[i]];
     waypoint = current_barrier["features"][0]["properties"]["alternatives"]
     coordinate_list.push(waypoint);
     directions.addWaypoint(i, waypoint);
@@ -302,9 +285,7 @@ customMode.onclick = function customMode(){
   stairsSlider.value = 50;
   unevenSlider.value = 50;
   noiseSlider.value = 50;
-
   recalculateBarriers();
-
 }
 
 wheelchairMode.onclick = function wheelchairMode(){
@@ -316,10 +297,7 @@ wheelchairMode.onclick = function wheelchairMode(){
   stairsSlider.value = 0;
   unevenSlider.value = 20;
   noiseSlider.value = 50;
-
   recalculateBarriers();
-
-
 }
 
 caneMode.onclick = function caneMode(){
@@ -331,28 +309,27 @@ caneMode.onclick = function caneMode(){
   stairsSlider.value = 10;
   unevenSlider.value = 30;
   noiseSlider.value = 50;
-
   recalculateBarriers();
 }
 
 function recalculateBarriers(){
-// change into a turf object (unit is how far away we want to take into account avoidance)
-obstacles = [];
-current_barriers =[];
-for (i=0; i<barriers.length; i++){
-  if(barriers[i]["features"][0]["properties"]["steepness"] > steepnessValue || 
-    barriers[i]["features"][0]["properties"]["stairs"] > stairsValue ||
-    barriers[i]["features"][0]["properties"]["uneven"] > unevenValue ||
-    barriers[i]["features"][0]["properties"]["noise"] > noiseValue){
-  current_barriers.push(barriers[i]);
-}
-}
-
- for (i=0; i<map_layers.length; i++){
-    map.setLayoutProperty(map_layers[i], 'visibility', 'none');
+  // change into a turf object (unit is how far away we want to take into account avoidance)
+  for (i=0; i<barriers.length; i++){
+    if(barriers[i]["features"][0]["properties"]["steepness"] > steepnessValue || 
+      barriers[i]["features"][0]["properties"]["stairs"] > stairsValue ||
+      barriers[i]["features"][0]["properties"]["uneven"] > unevenValue ||
+      barriers[i]["features"][0]["properties"]["noise"] > noiseValue){
+    current_mode_barriers.push(barriers[i]);
+  }
   }
 
-  for (i=0; i<current_barriers.length; i++){
-    map.setLayoutProperty(current_barriers[i]["features"][0]["properties"]["id"], 'visibility', 'visible');
+   for (i=0; i<map_layers.length; i++){
+      map.setLayoutProperty(map_layers[i], 'visibility', 'none');
+    }
+
+    for (i=0; i<current_mode_barriers.length; i++){
+      map.setLayoutProperty(current_mode_barriers[i]["features"][0]["properties"]["id"], 'visibility', 'visible');
+      current_obstacle = turf.buffer(current_mode_barriers[i], 0.005, { units: 'kilometers' });
+      current_mode_obstacles.push(current_obstacle);
+    }
   }
-}
