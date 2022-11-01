@@ -68,6 +68,9 @@ const steep_hill_keefe = {
 
 barriers = [stairs_keefe_hill];//, steep_hill_keefe];
 map_layers = [];
+current_mode_obstacles = [];
+current_mode_barriers =[];
+
 
 // change into a turf object (unit is how far away we want to take into account avoidance)
 obstacles = [];
@@ -83,7 +86,7 @@ map.on('load', function(){
   for (i=0; i<barriers.length; i++){
     map_layers.push(barriers[i]["features"][0]["properties"]["id"]); 
 
-    console.log(barriers[i]["features"][0]);
+    console.log("map on load" + barriers[i]["features"][0]);
     map.addLayer({
       id: barriers[i]["features"][0]["properties"]["id"],
       type: 'fill',
@@ -91,7 +94,9 @@ map.on('load', function(){
         type: 'geojson',
         data: obstacles[i]
       },
-      layout: {},
+      layout: {
+        // 'visibility' : 'visible',
+      },
       paint: {
         'fill-color': '#f03b20',
         'fill-opacity': 0.5,
@@ -132,11 +137,7 @@ map.on('load', function(){
 
 
 directions.on('route', (event) => {
-  // get the little sidebar thing
-  // const reports = document.getElementById('reports');
-  // reports.innerHTML = '';
-  // const report = reports.appendChild(document.createElement('div'));
-  // // Add IDs to the routes
+  recalculateBarriers();
   const routes = event.route.map((route, index) => ({
     ...route,
     id: index
@@ -164,10 +165,12 @@ directions.on('route', (event) => {
     // check to see if obstacle falls on route
     isClear = true;
     issue_points = [];
-    for (i=0; i<obstacles.length; i++){
-      if (turf.booleanDisjoint(obstacles[i], routeLine) === false){
+    console.log("directions on route:" + current_mode_obstacles);
+    for (i=0; i<current_mode_obstacles.length; i++){
+      if (turf.booleanDisjoint(current_mode_obstacles[i], routeLine) === false){
         isClear = false;
         issue_points.push(i);
+        console.log("directions on route: FOUND AN ISSUE");
       }
     }
 
@@ -179,7 +182,6 @@ directions.on('route', (event) => {
       addWaypoints(issue_points);
     }
 
-    console.log("paint lines");
     if (isClear) {
       map.setPaintProperty(`route${route.id}`, 'line-color', '#74c476');
     } else {
@@ -199,12 +201,6 @@ async function addWaypoints(issue_points){
         : 'Try a different point.';
     alert(`${response.code} - ${response.message}\n\n${handleMessage}`);
   }
-  
-  for (i=0; i<response["waypoints"].length; i++){
-    waypoint = response["waypoints"][i]["location"];
-    // directions.addWaypoint(i, waypoint);
-  }
-
 }
 
 
@@ -216,7 +212,7 @@ function makeURL(issue_points){
 
   //go through barriers and add alternative routes
   for (i=0; i<issue_points.length; i++){
-    current_barrier = barriers[issue_points[i]];
+    current_barrier = current_mode_barriers[issue_points[i]];
     waypoint = current_barrier["features"][0]["properties"]["alternatives"]
     coordinate_list.push(waypoint);
     directions.addWaypoint(i, waypoint);
@@ -308,8 +304,8 @@ caneMode.onclick = function caneMode(){
 }
 
 function recalculateBarriers(){
+  current_mode_barriers = [];
   // change into a turf object (unit is how far away we want to take into account avoidance)
-  current_mode_barriers =[];
   for (i=0; i<barriers.length; i++){
     if(barriers[i]["features"][0]["properties"]["steepness"] > steepnessValue || 
       barriers[i]["features"][0]["properties"]["stairs"] > stairsValue ||
@@ -323,7 +319,35 @@ function recalculateBarriers(){
       map.setLayoutProperty(map_layers[i], 'visibility', 'none');
     }
 
+    current_mode_obstacles = [];
+
     for (i=0; i<current_mode_barriers.length; i++){
       map.setLayoutProperty(current_mode_barriers[i]["features"][0]["properties"]["id"], 'visibility', 'visible');
+      current_obstacle = turf.buffer(current_mode_barriers[i], 0.005, { units: 'kilometers' });
+      current_mode_obstacles.push(current_obstacle);
     }
+
+    if (routeLine !== undefined){
+      recalculateDirections();
+    }
+  }
+
+  function recalculateDirections(){
+    console.log("RECALC DIRECTIONS");
+    for (i=issue_points.length-1; i>=0; i--){
+      console.log("recalculateDirections: DELETE");
+      directions.removeWaypoint(i);
+    }
+
+    issue_points = [];
+    console.log("recalculateDirections: " + routeLine);
+    for (i=0; i<current_mode_obstacles.length; i++){
+      if (turf.booleanDisjoint(current_mode_obstacles[i], routeLine) === false){
+        isClear = false;
+        issue_points.push(i);
+      }
+    }
+
+    addWaypoints(issue_points);
+
   }
