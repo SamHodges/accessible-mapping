@@ -132,6 +132,18 @@ padding: 0 10px;
  .popup-picture {
   width = 300px;
  }
+
+/* rest areas */
+
+.rest-area {
+  background-image: url('rest.jpg');
+  background-size: cover;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
  
 
 </style>
@@ -159,6 +171,12 @@ padding: 0 10px;
 
   <p>Noise</p>
   <input type="range" min="0" max="100" value="50" class="slider" id="noise-slider">
+
+  <button class="w3-button w3-blue-grey w3-round-xlarge w3-small" id="recenter">Recenter on Amherst</button>
+
+  <button class="w3-button w3-blue-grey w3-round-xlarge w3-small" id="recenter">Closest Parking Lot</button>
+
+
 </div>
  
 <script src='./index.js'></script>

@@ -1,11 +1,9 @@
-//access token 
+// access online map info
 mapboxgl.accessToken = 'pk.eyJ1Ijoic2hvZGdlczIzIiwiYSI6ImNsODE0MjlibDAzcjgzb251c2lhb241NW4ifQ.MaT8KKreBHbWDZYCaAmSnQ';
 
 // make a new map
 const map = new mapboxgl.Map({
-
   container: 'map', //div id for where it's going
-  // TODO: dark mode?
   style: 'mapbox://styles/shodges23/claa6b8tx001816qvoj809eho', // color style for map
   center: [-72.516831266, 42.36916519], // center position (Lat, long)
   zoom: 13 //zoom ratio- 0 is entire world, max is 24
@@ -18,73 +16,18 @@ const directions = new MapboxDirections({
   unit: 'metric', //metric for the win
   profile: 'mapbox/walking', //auto choose walking
   alternatives: 'false', //show alternatives 
-  geometries: 'geojson'
+  geometries: 'geojson' 
 });
 
 // where directions box is on the map
 map.addControl(directions, 'top-left');
 
-//rest areas
-restAreaCoordinates = [
-  [-72.51422,42.37025],
-  [-72.51387,42.36964]
-  ]
-
-for (i=0; i<restAreaCoordinates.length; i++){
-  const currentElement = document.createElement('div');
-  currentElement.className = 'rest-area';
-
-  // make a marker for each feature and add to the map
-  new mapboxgl.Marker(currentElement).setLngLat(restAreaCoordinates[i]).addTo(map);
-}
-
-//load barriers
-const stairs_keefe_hill = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [-72.51544,42.37142]
-      },
-      properties: {
-        steepness: 60,
-        stairs: 100,
-        uneven: 0,
-        noise: 30,
-        id: "stairs_keefe_hill",
-        barrier_type: "stairs",
-        alternatives: [-72.51544,42.37156]
-      }
-    }
-  ]
-};
-
-const steep_hill_keefe = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [-72.51544,42.37156]
-      },
-      properties: {
-        amount: 5,
-        id: "steep_hill_keefe",
-        barrier_type: "steep",
-        alternatives: [-72.51544,42.37142]
-      }
-    }
-  ]
-};
-
-barriers = [stairs_keefe_hill];//, steep_hill_keefe];
-map_layers = [];
+// keep track of what's an issue for the current user
 current_mode_obstacles = [];
 current_mode_barriers =[];
 issue_points = [];
+
+// keep track of what stage we are in the request from user (recieved, processing, done)
 newRequest = true; 
 addedWaypoints = false;
 
@@ -101,7 +44,6 @@ var routeLine;
 // show obstacles on load
 map.on('load', function(){
   for (i=0; i<barriers.length; i++){
-    map_layers.push(barriers[i]["features"][0]["properties"]["id"]); 
 
     map.addLayer({
       id: barriers[i]["features"][0]["properties"]["id"],
@@ -174,7 +116,7 @@ map.on('click', (event) => {
     and properties, and add it to the map.
   */
 
-currentFloors = feature.properties.floors;
+currentFloors = feature.properties.stairs_general;
 console.log(currentFloors);
 currentBuilding = feature.properties.title;
   popup.setLngLat(feature.geometry.coordinates)
@@ -415,10 +357,6 @@ function recalculateBarriers(){
     current_mode_barriers.push(barriers[i]);
     }
   }
-
-   for (i=0; i<map_layers.length; i++){
-      map.setLayoutProperty(map_layers[i], 'visibility', 'none');
-    }
 
     current_mode_obstacles = [];
 

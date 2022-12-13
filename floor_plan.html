@@ -1,0 +1,60 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+
+
+<h3 id="header" style="text-align: center;">Building</h3>
+<span style="padding-left:10%"><button ><img src="./exit-floor-plan.png" height="25px" width="25px" alt="Exit floor plan back to map" onclick="exit()"></button></span>
+<img id="pic" src=currentBuilding alt="floor map">
+<p style="float: left; padding-left:10%" id="prevButton"><button class="w3-button w3-indigo w3-round-xlarge w3-small" onclick="prevPic()">Previous Floor</button></p>
+<p style="float: right; padding-right:10%" id="nextButton"><button class="w3-button w3-indigo w3-round-xlarge w3-small" onclick="nextPic()">Next Floor</button></p>
+
+
+<script>
+    var currentBuilding = window.location.hash.substring(1).replace(/_/g," ").split("#")[0];
+    var floorLimit = window.location.hash.substring(1).split("#")[1];
+
+    document.getElementById("header").innerHTML = currentBuilding;
+    currentPNG = currentBuilding + "-1.png";
+    document.getElementById("pic").src = currentPNG;
+    var currentPic = 1;
+
+    function nextPic(){
+        currentPic = currentPic + 1;
+        currentPNG = currentBuilding + "-" + currentPic + ".png";
+        document.getElementById("pic").src = currentPNG;
+
+        if (currentPic == floorLimit){
+            document.getElementById("nextButton").innerHTML = " ";
+        }
+        if (currentPic == 2){
+            document.getElementById("prevButton").innerHTML = "<button class=\"w3-button w3-indigo w3-round-xlarge w3-small\" onclick=\"prevPic()\">Previous Floor</button>";
+        }
+    }
+
+    function prevPic(){
+        currentPic = currentPic - 1;
+        currentPNG = currentBuilding + "-" + currentPic + ".png";
+        document.getElementById("pic").src = currentPNG;
+
+        if (currentPic == 1){
+            document.getElementById("prevButton").innerHTML = " ";
+        }
+        if (currentPic == floorLimit - 1){
+            document.getElementById("nextButton").innerHTML = "<button class=\"w3-button w3-indigo w3-round-xlarge w3-small\" onclick=\"nextPic()\">Next Floor</button>";
+        }
+    }
+
+    function exit(){
+        console.log("HIIIIII");
+        window.location.href = 'index.html';
+
+    }
+</script>
+
+<style type="text/css">
+    img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+</style>
