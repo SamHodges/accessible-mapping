@@ -60,12 +60,6 @@ border-right: 1px solid rgba(0, 0, 0, 0.25);
 
 /*text*/
  
-h1 {
-font-size: 22px;
-margin: 0;
-font-weight: 400;
-}
- 
 a {
 color: #404040;
 text-decoration: none;
@@ -144,7 +138,20 @@ padding: 0 10px;
   cursor: pointer;
 }
 
+
+/* text in sidebar */
+h2 {
+  padding-top:10px;
+  padding-bottom: 10px;
+}
+
+h1{
+  padding-bottom: 10px;
+}
  
+ p{
+  padding-bottom: 10px;
+ }
 
 </style>
 </head>
@@ -154,27 +161,41 @@ padding: 0 10px;
 <div class="sidebar">
 <div class="heading">
 
-<button class="w3-button w3-blue-grey w3-round-xlarge w3-small" id="custom-mode">Custom</button>
-<button class="w3-button w3-indigo w3-round-xlarge w3-small" id="wheelchair-mode"><img src="./wheelchair.png" height="25" width="100%" alt="Wheelchair mode: auto choose limits based on wheelchair use"></button>
-<button class="w3-button w3-indigo w3-round-xlarge w3-small" id="cane-mode"><img src="./cane.png" height="25" width="100%" alt="Cane modeauto choose limits based on cane use"></button>
+<div class = "slidecontainer" style="text-align: center;">
+<h1>Modes</h1>
+<button class="w3-button w3-blue-grey w3-round-xlarge w3-xlarge" id="custom-mode">Custom</button>
+<button class="w3-button w3-indigo w3-round-xlarge w3-xlarge" id="wheelchair-mode"><img src="./wheelchair.png" height="25" width="100%" alt="Wheelchair mode: auto choose limits based on wheelchair use"></button>
+<button class="w3-button w3-indigo w3-round-xlarge w3-xlarge" id="cane-mode"><img src="./cane.png" height="25" width="100%" alt="Cane modeauto choose limits based on cane use"></button>
+</div>
 
+<hr>
 
 <div class = "slidecontainer">
-  <p>Steepness</p>
+  <h2>Steepness</h2>
   <input type="range" min="0" max="100" value="50" class="slider" id="steepness-slider">
+  <p><span style="float:left">Completely Flat</span><span style="float:right">Any Steepness Fine</span></p>
 
-  <p>Stairs</p>
+  <hr>
+
+  <h2>Stairs</h2>
   <input type="range" min="0" max="100" value="50" class="slider" id="stairs-slider">
+  <p><span style="float:left">No Stairs</span><span style="float:right">5 Flights</span></p>
 
-  <p>Uneven Ground</p>
+  <hr>
+
+  <h2>Uneven Ground</h2>
   <input type="range" min="0" max="100" value="50" class="slider" id="uneven-slider">
+  <p><span style="float:left">Smooth Pavement</span><span style="float:right">Big Ditches</span></p>
 
-  <p>Noise</p>
+  <hr>
+
+  <h2>Noise</h2>
   <input type="range" min="0" max="100" value="50" class="slider" id="noise-slider">
+  <p><span style="float:left">Complete Silence</span><span style="float:right">Val Rush Hour</span></p>
 
-  <button class="w3-button w3-blue-grey w3-round-xlarge w3-small" id="recenter">Recenter on Amherst</button>
+  <hr>
 
-  <button class="w3-button w3-blue-grey w3-round-xlarge w3-small" id="recenter">Closest Parking Lot</button>
+  <button class="w3-button w3-blue-grey w3-round-xlarge w3-xlarge" onclick="recenter()">Recenter on Amherst</button>
 
 
 </div>

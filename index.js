@@ -7,8 +7,8 @@ const map = new mapboxgl.Map({
   container: 'map', //div id for where it's going
   // TODO: dark mode?
   style: 'mapbox://styles/shodges23/claa6b8tx001816qvoj809eho', // color style for map
-  center: [-72.516831266, 42.36916519], // center position (Lat, long)
-  zoom: 13 //zoom ratio- 0 is entire world, max is 24
+  center: [-72.51706,42.37097], // center position (Lat, long)
+  zoom: 16 //zoom ratio- 0 is entire world, max is 24
 });
 
 
@@ -79,6 +79,7 @@ const steep_hill_keefe = {
     }
   ]
 };
+
 
 barriers = [stairs_keefe_hill];//, steep_hill_keefe];
 map_layers = [];
@@ -350,9 +351,9 @@ var caneMode = document.getElementById("cane-mode");
 customMode.onclick = function customMode(){
   newRequest = true;
   addedWaypoints = false;
-  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-small"); 
-  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
-  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-xlarge"); 
+  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-xlarge"); 
+  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-xlarge"); 
   
   steepnessValue = 50;
   stairsValue = 50;
@@ -369,9 +370,9 @@ customMode.onclick = function customMode(){
 wheelchairMode.onclick = function wheelchairMode(){
   newRequest = true;
   addedWaypoints = false;
-  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
-  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-small"); 
-  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
+  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-xlarge"); 
+  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-xlarge"); 
+  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-xlarge"); 
 
   steepnessValue = 40;
   stairsValue = 0;
@@ -388,9 +389,9 @@ wheelchairMode.onclick = function wheelchairMode(){
 caneMode.onclick = function caneMode(){
   newRequest = true;
   addedWaypoints = false;
-  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
-  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-small"); 
-  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-small"); 
+  document.getElementById("custom-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-xlarge"); 
+  document.getElementById("wheelchair-mode").setAttribute("class", "w3-button w3-indigo w3-round-xlarge w3-xlarge"); 
+  document.getElementById("cane-mode").setAttribute("class", "w3-button w3-blue-grey w3-round-xlarge w3-xlarge"); 
   
   steepnessValue = 40;
   stairsValue = 10;
@@ -450,9 +451,46 @@ function recalculateBarriers(){
       }
     }
 
+  
+    const clearances = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: routeLine["coordinates"][0]
+          },
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: routeLine["coordinates"][routeLine["coordinates"].length-1]
+          },
+        }
+      ]
+    };
+
+    const clearance = turf.buffer(clearances, 0.005, { units: 'kilometers' });
+
+    for (i=0; i<current_mode_obstacles.length; i++){
+      if (turf.booleanDisjoint(current_mode_obstacles[i], clearance) === false){
+        const warning = new mapboxgl.Popup();
+        popup.setLngLat(current_mode_barriers[i]["features"][0]["geometry"]["coordinates"])
+            .setMaxWidth("none")
+            .setHTML(
+              `<h1 style="text-align: center;">Warning</h1>
+              <h3>The route you have chosen starts or stops on one of your barriers. </h3>
+              `
+            )
+            .addTo(map);
+
+        }
+      }
+
     newRequest = false;
     addWaypoints(issue_points);
-
 
   }
 
@@ -462,4 +500,8 @@ function recalculateBarriers(){
 function fullFloorPlan(){
   console.log("hi!");
   window.location.href = 'floor_plan.html#' + currentBuilding.replace(/ /g,"_") + "#" + currentFloors;
+}
+
+function recenter(){
+  map.flyTo({center: [-72.51706,42.37097], zoom: 16});
 }
