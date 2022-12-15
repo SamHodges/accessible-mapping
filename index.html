@@ -2,189 +2,168 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Demo: Route avoidance with the Directions API and Turf.js</title>
+<title>Accessible Mapping</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
- 
-<!-- Mapbox GL JS -->
-<script src="https://api.tiles.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.js"></script>
-<link
-href="https://api.tiles.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.css"
-rel="stylesheet"
-/>
- 
-<!-- Mapbox GL Directions -->
-<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.js"></script>
-<link
-rel="stylesheet"
-href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.css"
-type="text/css"
-/>
- 
-<!-- Turf & Polyline -->
-<script src="https://npmcdn.com/@turf/turf/turf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.js"></script>
+<!-- Imports -->
+  <!-- Mapbox GL JS -->
+  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.js"></script>
+  <link
+  href="https://api.tiles.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.css"
+  rel="stylesheet"
+  />
+   
+  <!-- Mapbox GL Directions -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.js"></script>
+  <link
+  rel="stylesheet"
+  href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.css"
+  type="text/css"
+  />
+   
+  <!-- Turf & Polyline -->
+  <script src="https://npmcdn.com/@turf/turf/turf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.js"></script>
 
-<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <!-- W3 Schools styling -->
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
  
+<!-- CSS Styling --> 
 <style>
-/* main body*/
-body {
-color: #404040;
-font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', sans-serif;
-margin: 0;
-padding: 0;
-}
- 
-* {
-box-sizing: border-box;
-}
- 
- /*map*/
-#map {
-position: absolute;
-margin-left:300px;
-right:0;
-top: 0;
-bottom: 0;
-width: calc(100vw - 300px);
-}
- 
-.sidebar {
-position: absolute;
-width: 300px;
-height: 100%;
-top: 0;
-left: 0;
-overflow: scroll;
-border-right: 1px solid rgba(0, 0, 0, 0.25);
-z-
-}
+  /* main body*/
+  body {
+  color: #404040;
+  font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', sans-serif;
+  margin: 0;
+  padding: 0;
+  }
+   
+  * {
+  box-sizing: border-box;
+  }
+   
+   /*map*/
+  #map {
+  position: absolute;
+  margin-left:300px;
+  right:0;
+  top: 0;
+  bottom: 0;
+  width: calc(100vw - 300px);
+  }
+   
+  /*sidebar */
+  h2 {
+    padding-top:10px;
+    padding-bottom: 10px;
+  }
 
-/*text*/
- 
-a {
-color: #404040;
-text-decoration: none;
-}
- 
-a:hover {
-color: #101010;
-}
- 
- /*report sidebar*/
-/*.heading {
-background: #fff;
-border-bottom: 1px solid #eee;
-min-height: 60px;
-line-height: 60px;
-padding: 0 10px;
-}*/
- 
+  h1{
+    padding-bottom: 10px;
+  }
+   
+   p{
+    padding-bottom: 10px;
+   }
 
- 
- /*scrollbar*/
+   .options{
+    margin-bottom: 10px;
+   }
 
- .slidecontainer {
-  width: 90%;
-  margin: auto;
-}
+   .sidebar {
+  position: absolute;
+  width: 300px;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: scroll;
+  border-right: 1px solid rgba(0, 0, 0, 0.25);
+  z-
+  }
 
- .slider {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 15px;
-  border-radius: 5px;  
-  background: #d3d1f9;
-  outline: none;
-  opacity: 0.7;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
-}
+  /*sliders*/
+  .slidecontainer {
+    width: 90%;
+    margin: auto;
+  }
 
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%; 
-  background: #04AA6D;
-  cursor: pointer;
-}
+  .slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 15px;
+    border-radius: 5px;  
+    background: #d3d1f9;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+  }
 
-.slider::-moz-range-thumb {
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background: #08044f;
-  cursor: pointer;
-}
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%; 
+    background: #04AA6D;
+    cursor: pointer;
+  }
 
-/*popup css*/
+  .slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #08044f;
+    cursor: pointer;
+  }
 
- .popup-rating {
-  margin : 0;
- }
+  /*popups*/
+  .popup-rating {
+    margin : 0;
+   }
 
- .popup-picture {
-  width = 300px;
- }
+  .popup-picture {
+    width = 300px;
+   }
 
-/* rest areas */
+  /* rest areas */
+  .rest-area {
+    background-image: url('rest.jpg');
+    background-size: cover;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
 
-.rest-area {
-  background-image: url('rest.jpg');
-  background-size: cover;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.parking-lot {
-  background-image: url('parking.jpg');
-  background-size: cover;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-
-/* text in sidebar */
-h2 {
-  padding-top:10px;
-  padding-bottom: 10px;
-}
-
-h1{
-  padding-bottom: 10px;
-}
- 
- p{
-  padding-bottom: 10px;
- }
-
- .options{
-  margin-bottom: 10px;
- }
-
+  /*parking lots*/
+  .parking-lot {
+    background-image: url('parking.jpg');
+    background-size: cover;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
 </style>
 </head>
  
 <body>
+<!-- Blank divs to fill in later -->
 <div id="map"></div>
 <div class="sidebar">
 <div class="heading">
 
+<!-- Sidebar mode buttons -->
 <div class = "slidecontainer" style="text-align: center;">
-<h1>Modes</h1>
-<button class="w3-button w3-blue-grey w3-round-xlarge w3-xlarge" id="custom-mode">Custom</button>
-<button class="w3-button w3-indigo w3-round-xlarge w3-xlarge" id="wheelchair-mode"><img src="./wheelchair.png" height="25" width="100%" alt="Wheelchair mode: auto choose limits based on wheelchair use"></button>
-<button class="w3-button w3-indigo w3-round-xlarge w3-xlarge" id="cane-mode"><img src="./cane.png" height="25" width="100%" alt="Cane modeauto choose limits based on cane use"></button>
+  <h1>Modes</h1>
+  <button class="w3-button w3-blue-grey w3-round-xlarge w3-xlarge" id="custom-mode">Custom</button>
+  <button class="w3-button w3-indigo w3-round-xlarge w3-xlarge" id="wheelchair-mode"><img src="./wheelchair.png" height="25" width="100%" alt="Wheelchair mode: auto choose limits based on wheelchair use"></button>
+  <button class="w3-button w3-indigo w3-round-xlarge w3-xlarge" id="cane-mode"><img src="./cane.png" height="25" width="100%" alt="Cane modeauto choose limits based on cane use"></button>
 </div>
 
 <hr>
 
+<!-- Sliders in sidebar -->
 <div class = "slidecontainer">
   <h2>Steepness</h2>
   <input type="range" min="0" max="100" value="50" class="slider" id="steepness-slider">
@@ -210,20 +189,16 @@ h1{
 
 </div>
 
-  <hr>
+<hr>
 
-  <div class = "slidecontainer" style="text-align: center;">
+<!-- End buttons in sidebar -->
+<div class = "slidecontainer" style="text-align: center;">
   <button class="w3-button w3-blue-grey w3-round-xlarge w3-xlarge options" onclick="recenter()">Recenter on Amherst</button>
-
   <button class="w3-button w3-blue-grey w3-round-xlarge w3-xlarge options" onclick="parking()">Nearest Parking Lot</button>
-
   <button class="w3-button w3-blue-grey w3-round-xlarge w3-xlarge options" onclick="resting()">Nearest Rest Area</button>
-
-
-
-
 </div>
  
+<!-- accessing other code -->
 <script src="./data.json"></script>
 <script src='./index.js'></script>
 

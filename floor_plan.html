@@ -1,35 +1,50 @@
+<!-- W3 Styling -->
 <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 
-
+<!-- Header -->
 <h3 id="header" style="text-align: center;">Building</h3>
+
+<!-- Exit button -->
 <span style="padding-left:10%"><button ><img src="./exit-floor-plan.png" height="25px" width="25px" alt="Exit floor plan back to map" onclick="exit()"></button></span>
+
+<!-- Floor Plan -->
 <img id="pic" src=currentBuilding alt="floor map">
+
+<!-- Next and Previous Buttons -->
 <p style="float: left; padding-left:10%" id="prevButton"><button class="w3-button w3-indigo w3-round-xlarge w3-small" onclick="prevPic()">Previous Floor</button></p>
 <p style="float: right; padding-right:10%" id="nextButton"><button class="w3-button w3-indigo w3-round-xlarge w3-small" onclick="nextPic()">Next Floor</button></p>
 
 
 <script>
+    // get building name and floor amount from index (passed through)
     var currentBuilding = window.location.hash.substring(1).replace(/_/g," ").split("#")[0];
     var floorLimit = window.location.hash.substring(1).split("#")[1];
 
+    // replace HTML with customized versions
     document.getElementById("header").innerHTML = currentBuilding;
     currentPNG = currentBuilding + "-1.png";
     document.getElementById("pic").src = currentPNG;
+
+    // on lowest floor
     var currentPic = 1;
 
+    // move to next floor pic
     function nextPic(){
-        currentPic = currentPic + 1;
-        currentPNG = currentBuilding + "-" + currentPic + ".png";
-        document.getElementById("pic").src = currentPNG;
+        currentPic = currentPic + 1; // keep track of floor
+        currentPNG = currentBuilding + "-" + currentPic + ".png"; // access next img
+        document.getElementById("pic").src = currentPNG; // replace on webpage
 
+        // if at highest floor, dont let user click next
         if (currentPic == floorLimit){
             document.getElementById("nextButton").innerHTML = " ";
         }
+        // if coming back from lowest floor, re-add prev
         if (currentPic == 2){
             document.getElementById("prevButton").innerHTML = "<button class=\"w3-button w3-indigo w3-round-xlarge w3-small\" onclick=\"prevPic()\">Previous Floor</button>";
         }
     }
 
+    // move to previous floor
     function prevPic(){
         currentPic = currentPic - 1;
         currentPNG = currentBuilding + "-" + currentPic + ".png";
@@ -43,10 +58,9 @@
         }
     }
 
+    // go back to map page
     function exit(){
-        console.log("HIIIIII");
         window.location.href = 'index.html';
-
     }
 </script>
 
