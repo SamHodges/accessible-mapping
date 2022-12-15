@@ -2,6 +2,8 @@
 mapboxgl.accessToken = 'pk.eyJ1Ijoic2hvZGdlczIzIiwiYSI6ImNsODE0MjlibDAzcjgzb251c2lhb241NW4ifQ.MaT8KKreBHbWDZYCaAmSnQ';
 
 // make a new map
+const sw = new mapboxgl.LngLat(-72.53734, 42.36192);
+const ne = new mapboxgl.LngLat(-72.49133, 42.38363);
 const map = new mapboxgl.Map({
 
   container: 'map', //div id for where it's going
@@ -11,77 +13,42 @@ const map = new mapboxgl.Map({
   zoom: 16 //zoom ratio- 0 is entire world, max is 24
 });
 
-
 // make directions box
 const directions = new MapboxDirections({
   accessToken: mapboxgl.accessToken, //access token
   unit: 'metric', //metric for the win
   profile: 'mapbox/walking', //auto choose walking
   alternatives: 'false', //show alternatives 
-  geometries: 'geojson'
+  geometries: 'geojson',
 });
 
 // where directions box is on the map
 map.addControl(directions, 'top-left');
 
-//rest areas
-restAreaCoordinates = [
-  [-72.51422,42.37025],
-  [-72.51387,42.36964]
-  ]
+
+restAreaCoordinates = JSON.parse(all_data)["restAreaCoordinates"];
 
 for (i=0; i<restAreaCoordinates.length; i++){
   const currentElement = document.createElement('div');
   currentElement.className = 'rest-area';
 
   // make a marker for each feature and add to the map
-  new mapboxgl.Marker(currentElement).setLngLat(restAreaCoordinates[i]).addTo(map);
+  new mapboxgl.Marker(currentElement).setLngLat(restAreaCoordinates[i]["geometry"]["coordinates"]).addTo(map);
 }
 
-//load barriers
-const stairs_keefe_hill = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [-72.51544,42.37142]
-      },
-      properties: {
-        steepness: 60,
-        stairs: 100,
-        uneven: 0,
-        noise: 30,
-        id: "stairs_keefe_hill",
-        barrier_type: "stairs",
-        alternatives: [-72.51544,42.37156]
-      }
-    }
-  ]
-};
+parkingLots = JSON.parse(all_data)["parkingLots"];
 
-const steep_hill_keefe = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [-72.51544,42.37156]
-      },
-      properties: {
-        amount: 5,
-        id: "steep_hill_keefe",
-        barrier_type: "steep",
-        alternatives: [-72.51544,42.37142]
-      }
-    }
-  ]
-};
+for (i=0; i<parkingLots.length; i++){
+  const currentElement = document.createElement('div');
+  currentElement.className = 'parking-lot';
+
+  // make a marker for each feature and add to the map
+  new mapboxgl.Marker(currentElement).setLngLat(parkingLots[i]["geometry"]["coordinates"]).addTo(map);
+}
 
 
-barriers = [stairs_keefe_hill];//, steep_hill_keefe];
+var barriers = JSON.parse(all_data)["barriers"];
+
 map_layers = [];
 current_mode_obstacles = [];
 current_mode_barriers =[];
@@ -102,10 +69,10 @@ var routeLine;
 // show obstacles on load
 map.on('load', function(){
   for (i=0; i<barriers.length; i++){
-    map_layers.push(barriers[i]["features"][0]["properties"]["id"]); 
+    map_layers.push(barriers[i]["properties"]["id"]); 
 
     map.addLayer({
-      id: barriers[i]["features"][0]["properties"]["id"],
+      id: barriers[i]["properties"]["id"],
       type: 'fill',
       source: {
         type: 'geojson',
@@ -153,12 +120,14 @@ map.on('load', function(){
 currentBuilding = null;
 currentFloors = null;
 const popup = new mapboxgl.Popup();
+currentStart = null;
 
 /* 
 Add an event listener that runs
   when a user clicks on the map element.
 */
 map.on('click', (event) => {
+  currentStart = [event.lngLat["lng"], event.lngLat["lat"]];
   // If the user clicked on one of your markers, get its information.
   const features = map.queryRenderedFeatures(event.point, {
     layers: ['buildingaccessibilitylabels'] // replace with your layer name
@@ -211,7 +180,7 @@ directions.on('route', (event) => {
   }));
 
   // hide all the routes
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 3; i++) { 
     map.setLayoutProperty(`route${i}`, 'visibility', 'none');
   }
 
@@ -228,6 +197,7 @@ directions.on('route', (event) => {
 
     // update data/visual
     map.getSource(`route${route.id}`).setData(routeLine);
+    console.log(route.id);
 
     // check to see if obstacle falls on route
     isClear = true;
@@ -252,6 +222,7 @@ directions.on('route', (event) => {
     }
   }
 });
+
 
 async function addWaypoints(issue_points){
   const query = await fetch(makeURL(issue_points), {method: 'GET'});
@@ -282,7 +253,7 @@ function makeURL(issue_points){
   //go through barriers and add alternative routes
   for (i=0; i<issue_points.length; i++){
     current_barrier = current_mode_barriers[issue_points[i]];
-    waypoint = current_barrier["features"][0]["properties"]["alternatives"]
+    waypoint = current_barrier["properties"]["alternatives"]
     coordinate_list.push(waypoint);
     directions.addWaypoint(i, waypoint);
   }
@@ -291,6 +262,8 @@ function makeURL(issue_points){
 
   // add end barrier
   coordinate_list.push(routeLine["coordinates"][routeLine["coordinates"].length -1]);
+
+  console.log(coordinate_list);
 
   url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
           )}?overview=full&steps=true&geometries=geojson&source=first&destination=last&roundtrip=false&access_token=${mapboxgl.accessToken}`;
@@ -409,10 +382,10 @@ function recalculateBarriers(){
   current_mode_barriers = [];
   // change into a turf object (unit is how far away we want to take into account avoidance)
   for (i=0; i<barriers.length; i++){
-    if(barriers[i]["features"][0]["properties"]["steepness"] > steepnessValue || 
-      barriers[i]["features"][0]["properties"]["stairs"] > stairsValue ||
-      barriers[i]["features"][0]["properties"]["uneven"] > unevenValue ||
-      barriers[i]["features"][0]["properties"]["noise"] > noiseValue){
+    if(barriers[i]["properties"]["steepness"] > steepnessValue || 
+      barriers[i]["properties"]["stairs"] > stairsValue ||
+      barriers[i]["properties"]["uneven"] > unevenValue ||
+      barriers[i]["properties"]["noise"] > noiseValue){
     current_mode_barriers.push(barriers[i]);
     }
   }
@@ -424,7 +397,7 @@ function recalculateBarriers(){
     current_mode_obstacles = [];
 
     for (i=0; i<current_mode_barriers.length; i++){
-      map.setLayoutProperty(current_mode_barriers[i]["features"][0]["properties"]["id"], 'visibility', 'visible');
+      map.setLayoutProperty(current_mode_barriers[i]["properties"]["id"], 'visibility', 'visible');
       current_obstacle = turf.buffer(current_mode_barriers[i], 0.005, { units: 'kilometers' });
       current_mode_obstacles.push(current_obstacle);
     }
@@ -477,7 +450,7 @@ function recalculateBarriers(){
     for (i=0; i<current_mode_obstacles.length; i++){
       if (turf.booleanDisjoint(current_mode_obstacles[i], clearance) === false){
         const warning = new mapboxgl.Popup();
-        popup.setLngLat(current_mode_barriers[i]["features"][0]["geometry"]["coordinates"])
+        popup.setLngLat(current_mode_barriers[i]["geometry"]["coordinates"])
             .setMaxWidth("none")
             .setHTML(
               `<h1 style="text-align: center;">Warning</h1>
@@ -504,4 +477,115 @@ function fullFloorPlan(){
 
 function recenter(){
   map.flyTo({center: [-72.51706,42.37097], zoom: 16});
+}
+
+
+
+async function parking(){
+
+  shortestDistance = Number.MAX_VALUE;
+  parkingLotDirections = null;
+
+  if(currentStart === null){
+    console.log("NULL");
+    console.log(map.getCenter());
+    const enterStart = new mapboxgl.Popup();
+        popup.setLngLat(map.getCenter())
+            .setMaxWidth("none")
+            .setHTML(
+              `<h1 style="text-align: center;">Remember to Enter Your Current Position!</h1>
+              `
+            )
+            .addTo(map);
+
+  }
+
+  for (i=0; i<parkingLots.length; i++){
+    coordinate_list = [currentStart, parkingLots[i]["geometry"]["coordinates"]];
+    console.log (coordinate_list);
+    url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
+            )}?overview=full&steps=true&geometries=geojson&source=first&destination=last&roundtrip=false&access_token=${mapboxgl.accessToken}`;
+          
+
+    const query = await fetch(url, {method: 'GET'});
+    const response = await query.json();
+
+
+    console.log(currentStart);
+    console.log(parkingLots[i]["geometry"]["coordinates"])
+    console.log(response);
+
+    currentDistance = response.trips[0].distance;
+
+    console.log(currentDistance, shortestDistance);
+    if (currentDistance < shortestDistance){
+      shortestDistance = currentDistance;
+      parkingLotDirections = response;
+    } 
+
+     // update data/visual
+    const routeGeoJSON = turf.featureCollection([
+    turf.feature(parkingLotDirections.trips[0].geometry)
+  ]);
+    map.getSource(`route0`).setData(routeGeoJSON);
+
+
+      map.setPaintProperty(`route0`, 'line-color', '#74c476');
+
+}
+
+}
+async function resting(){
+
+  shortestDistance = Number.MAX_VALUE;
+  restingDirections = null;
+
+  if(currentStart === null){
+    console.log("NULL");
+    console.log(map.getCenter());
+    const enterStart = new mapboxgl.Popup();
+        popup.setLngLat(map.getCenter())
+            .setMaxWidth("none")
+            .setHTML(
+              `<h1 style="text-align: center;">Remember to Enter Your Current Position!</h1>
+              `
+            )
+            .addTo(map);
+
+  }
+
+  for (i=0; i<restAreaCoordinates.length; i++){
+    coordinate_list = [currentStart, restAreaCoordinates[i]["geometry"]["coordinates"]];
+    console.log (coordinate_list);
+    url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
+            )}?overview=full&steps=true&geometries=geojson&source=first&destination=last&roundtrip=false&access_token=${mapboxgl.accessToken}`;
+          
+
+    const query = await fetch(url, {method: 'GET'});
+    const response = await query.json();
+
+
+    console.log(currentStart);
+    console.log(restAreaCoordinates[i]["geometry"]["coordinates"])
+    console.log(response);
+
+    currentDistance = response.trips[0].distance;
+
+    console.log(currentDistance, shortestDistance);
+    if (currentDistance < shortestDistance){
+      shortestDistance = currentDistance;
+      restingDirections = response;
+    } 
+
+     // update data/visual
+    const routeGeoJSON = turf.featureCollection([
+    turf.feature(restingDirections.trips[0].geometry)
+  ]);
+    map.getSource(`route0`).setData(routeGeoJSON);
+
+
+      map.setPaintProperty(`route0`, 'line-color', '#74c476');
+
+}
+
 }
