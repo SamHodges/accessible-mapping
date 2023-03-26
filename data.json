@@ -20,7 +20,7 @@ all_data = `
   "type": "Feature",
   "properties": {
     "steepness": 60,
-    "stairs_down": 100,
+    "stairs": 100,
     "uneven": 0,
     "noise": 30,
     "id": "stairs_keefe_hill",
@@ -35,12 +35,12 @@ all_data = `
 {
   "type": "Feature",
   "properties": {
-    "steepness": 30,
-    "stairs": "",
-    "uneven": "",
+    "steepness": 20,
+    "stairs": 30,
+    "uneven": 5,
     "noise": 5,
-    "id": "smudd_hill",
-    "alternatives": [[-72.51544,42.37142]]
+    "id": "val_hill",
+    "alternatives": [[-72.51590,42.37249]]
   },
   "geometry": {
     "coordinates": [-72.515082, 42.370676],

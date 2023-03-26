@@ -1,3 +1,8 @@
+/*
+Current issues:
+- nearest parking lot and rest areas don't work-- set opacity to 0, but how do rest of lines even display lmao?
+*/
+
 // -----------------------------------------Initialize Map-----------------------------------------------
 //access token to access map + routing
 mapboxgl.accessToken = 'pk.eyJ1Ijoic2hvZGdlczIzIiwiYSI6ImNsODE0MjlibDAzcjgzb251c2lhb241NW4ifQ.MaT8KKreBHbWDZYCaAmSnQ';
@@ -18,6 +23,7 @@ const directions = new MapboxDirections({
   profile: 'mapbox/walking', //auto choose walking
   alternatives: 'false', //show alternatives 
   geometries: 'geojson', //how it sends info
+  bbox: '-72.51987,42.36841,-72.51140,42.37573'
 });
 
 // where directions box is on the map
@@ -25,66 +31,66 @@ map.addControl(directions, 'top-left');
 
 // -----------------------------------------Rest Areas-----------------------------------------------
 // get coordinates of rest areas
-restAreaCoordinates = JSON.parse(all_data)["restAreaCoordinates"];
+const restAreaCoordinates = JSON.parse(all_data)["restAreaCoordinates"];
 
 // go through and add them to map
 for (i=0; i<restAreaCoordinates.length; i++){
-  const currentElement = document.createElement('div'); // create an element
+  let currentElement = document.createElement('div'); // create an element
   currentElement.className = 'rest-area'; // assign it to class (for formatting)
   new mapboxgl.Marker(currentElement).setLngLat(restAreaCoordinates[i]["geometry"]["coordinates"]).addTo(map); //add to map
 }
 
 // -----------------------------------------Parking Lots-----------------------------------------------
 // get coordinates of parking lots
-parkingLots = JSON.parse(all_data)["parkingLots"];
+const parkingLots = JSON.parse(all_data)["parkingLots"];
 
 // go through and add to map
 for (i=0; i<parkingLots.length; i++){
-  const currentElement = document.createElement('div'); // create element for it
+  let currentElement = document.createElement('div'); // create element for it
   currentElement.className = 'parking-lot'; // assign class for formatting
   new mapboxgl.Marker(currentElement).setLngLat(parkingLots[i]["geometry"]["coordinates"]).addTo(map); // add to map
 }
 
 // -----------------------------------------Initialize Barriers-----------------------------------------------
-all_barriers = []; // lists all the potential barrier IDs
-obstacles = []; //  lists all potential barriers in turf object format
-current_mode_barriers =[]; // barriers for current user
-current_mode_obstacles = []; // current barriers in turf object format 
-issue_points = []; // barriers included in current route
-newRequest = true; // whether a directions request has been made
-addedWaypoints = false; // whether waypoints have been added to the route yet
-var routeLine; // the current route
+let issue_points = []; // barriers included in current route
+let newRequest = true; // whether a directions request has been made
+let addedWaypoints = false; // whether waypoints have been added to the route yet
+let routeLine; // the current route
 
 // get coordinates for barriers
-var barriers = JSON.parse(all_data)["barriers"];
-
-
-// change barriers into a turf object (unit is how far away we want to take into account avoidance)
-for (i=0; i<barriers.length; i++){
-  current_obstacle = turf.buffer(barriers[i], 0.005, { units: 'kilometers' }); // change to turf object
-  obstacles.push(current_obstacle); // add to obstacles for future use
-}
+let barriers = JSON.parse(all_data)["barriers"];
 
 // -----------------------------------------Building Pop Up-----------------------------------------------
 // initialize variables for building popups
-currentBuilding = null; // current building user clicked
-currentFloors = null; // amount of floors in that building
-const popup = new mapboxgl.Popup(); // add empty popup to map
-currentStart = null; // where the user currently is/where they clicked
+let currentBuilding = null; // current building user clicked
+let currentFloors = null; // amount of floors in that building
+let popup = new mapboxgl.Popup(); // add empty popup to map
+let currentStart = null; // where the user currently is/where they clicked
+
+
+// TODO: organize where these go! ------------------------------------------------------------
+
+function convertToTurf(barrier){
+  return turf.buffer(barrier, 0.005, { units: 'kilometers' }); // change to turf object
+}
+
+
+function getBarrierID(barrier){
+  return barrier["properties"]["id"];
+}
 
 // -----------------------------------------Load Map-----------------------------------------------
 map.on('load', function(){
   // go through barriers and add them to map
   for (i=0; i<barriers.length; i++){
-    all_barriers.push(barriers[i]["properties"]["id"]); // add barrier IDs to all_barriers
 
     // add barriers to the map layer so they can appear/be incorporated to routes
     map.addLayer({
-      id: barriers[i]["properties"]["id"],
+      id: getBarrierID(barriers[i]),
       type: 'fill',
       source: {
         type: 'geojson',
-        data: obstacles[i]
+        data: convertToTurf(barriers[i]),
       },
       layout: {},
       paint: {
@@ -94,6 +100,9 @@ map.on('load', function(){
       }
     });
   }
+
+  //calculate original barriers
+  recalculateBarriers();
 
   // get multiple routes back and show them
   for (let i = 0; i < 3; i++) {
@@ -114,7 +123,7 @@ map.on('load', function(){
       },
       paint: {
         'line-color': '#cccccc',
-        'line-opacity': 0.5,
+        'line-opacity': 0,
         'line-width': 13,
         'line-blur': 0.5
       }
@@ -172,43 +181,25 @@ directions.on('route', (event) => {
   const routes = event.route.map((route, index) => ({
     ...route,
     id: index
-  }));
-
-  // hide all the routes
-  for (let i = 0; i < 3; i++) { 
-    map.setLayoutProperty(`route${i}`, 'visibility', 'none');
-  }
+  }))[0];
 
   // keep track of if any of the routes are open
   numGoodRoutes = routes.length;
 
-  // go through each route and make it visible, then do stuff with it
-  for (const route of routes) {
-    //make it visible!
-    map.setLayoutProperty(`route${route.id}`, 'visibility', 'visible');
+  // get coordinate data for it
+  routeLine = polyline.toGeoJSON(routes.geometry);
 
-    // get coordinate data for it
-    routeLine = polyline.toGeoJSON(route.geometry);
+  // check to see if obstacle falls on route
+  recalculateBarriers();
 
-    // update data/visual
-    map.getSource(`route${route.id}`).setData(routeLine);
-
-    // check to see if obstacle falls on route
-    recalculateBarriers();
-
-    // if it's not a good route, find alternatives
-    if (issue_points.length > 0 && addedWaypoints == false){
-      addWaypoints(issue_points); // add some waypoints to force it to a different route
-    }
-    addedWaypoints = true; // keep track of adding the waypoints
-  }
+  addedWaypoints = true; // keep track of adding the waypoints
 });
 
 
 // adding the waypoints to the route
-async function addWaypoints(issue_points){
+async function addWaypoints(issuePoints, currentBarriers){
   // send in request for new route with waypoints
-  const query = await fetch(makeURL(issue_points), {method: 'GET'}); // make and send request
+  const query = await fetch(makeURL(issuePoints, currentBarriers), {method: 'GET'}); // make and send request
   const response = await query.json(); // wait for response
 
   // if response is good, done! if not, give error
@@ -222,27 +213,28 @@ async function addWaypoints(issue_points){
 }
 
 // make url for adding waypoints
-function makeURL(issue_points){
+function makeURL(issuePoints, currentBarriers){
   // make a list of all the coordinates
   coordinate_list = [];
 
   //push first coordinate
   coordinate_list.push(routeLine["coordinates"][0]);
 
-  if(issue_points.length == 0){
+  if(issuePoints.length == 0){
     newRequest = true;
   }
 
   //go through barriers and add alternative routes
-  for (i=0; i<issue_points.length; i++){
-    current_barrier = current_mode_barriers[issue_points[i]]; // get current barrier from list of current user barriers
-    waypoint = current_barrier["properties"]["alternatives"]; // look at alternative it needs
+  for (i=0; i<issuePoints.length; i++){
+    currentBarrier = currentBarriers[issuePoints[i]]; // get current barrier from list of current user barriers
+    waypoint = currentBarrier["properties"]["alternatives"]; // look at alternative it needs
     coordinate_list.push(waypoint); // add it to the list of coordinates to pass through
     directions.addWaypoint(i, waypoint); // add it to the routing text directions
   }
 
   // add end barrier
   coordinate_list.push(routeLine["coordinates"][routeLine["coordinates"].length -1]);
+
 
   // make url of new coordinates
   url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
@@ -255,16 +247,16 @@ function makeURL(issue_points){
 
 // -----------------------------------------Sliders-----------------------------------------------
 // connect to sliders from HTML
-var steepnessSlider = document.getElementById("steepness-slider");
-var stairsSlider = document.getElementById("stairs-slider");
-var unevenSlider = document.getElementById("uneven-slider");
-var noiseSlider = document.getElementById("noise-slider");
+const steepnessSlider = document.getElementById("steepness-slider");
+const stairsSlider = document.getElementById("stairs-slider");
+const unevenSlider = document.getElementById("uneven-slider");
+const noiseSlider = document.getElementById("noise-slider");
 
 // set initial values
-var steepnessValue = steepnessSlider.value;
-var stairsValue = stairsSlider.value;
-var unevenValue = unevenSlider.value;
-var noiseValue = noiseSlider.value;
+let steepnessValue = steepnessSlider.value;
+let stairsValue = stairsSlider.value;
+let unevenValue = unevenSlider.value;
+let noiseValue = noiseSlider.value;
 
 
 // keep track of values when the sliders change
@@ -299,9 +291,9 @@ noiseSlider.oninput = function() {
 
 // -----------------------------------------Modes-----------------------------------------------
 // get modes from HTML
-var customMode = document.getElementById("custom-mode");
-var wheelchairMode = document.getElementById("wheelchair-mode");
-var caneMode = document.getElementById("cane-mode");
+const customMode = document.getElementById("custom-mode");
+const wheelchairMode = document.getElementById("wheelchair-mode");
+const caneMode = document.getElementById("cane-mode");
 
 // redo barrier levels when buttons clicked
 customMode.onclick = function customMode(){
@@ -370,41 +362,36 @@ caneMode.onclick = function caneMode(){
 
 // -----------------------------------------Recalculating Barriers-----------------------------------------------
 function recalculateBarriers(){
-  current_mode_barriers = []; // keep track of barriers for this user
+    let currentBarriers = []; // keep track of barriers for this user
 
-  // go through possible barriers and check if they're barriers for current user
-  for (i=0; i<barriers.length; i++){
-    if(barriers[i]["properties"]["steepness"] > steepnessValue || 
-      barriers[i]["properties"]["stairs"] > stairsValue ||
-      barriers[i]["properties"]["uneven"] > unevenValue ||
-      barriers[i]["properties"]["noise"] > noiseValue){
-    current_mode_barriers.push(barriers[i]); // if they are, add to barrier list
+    // go through possible barriers and check if they're barriers for current user
+    for (i=0; i<barriers.length; i++){
+      if(barriers[i]["properties"]["steepness"] > steepnessValue || 
+        barriers[i]["properties"]["stairs"] > stairsValue ||
+        barriers[i]["properties"]["uneven"] > unevenValue ||
+        barriers[i]["properties"]["noise"] > noiseValue){
+      currentBarriers.push(barriers[i]); // if they are, add to barrier list
+      }
     }
-  }
 
     // make all barriers invisible on map
-    for (i=0; i<all_barriers.length; i++){
-      map.setLayoutProperty(all_barriers[i], 'visibility', 'none');
+    for (i=0; i<barriers.length; i++){
+      map.setLayoutProperty(getBarrierID(barriers[i]), 'visibility', 'none');
     }
 
-    // keep track of turf objects for current barriers
-    current_mode_obstacles = [];
-
     // go through barriers and make them turf objects + visible on map
-    for (i=0; i<current_mode_barriers.length; i++){
-      map.setLayoutProperty(current_mode_barriers[i]["properties"]["id"], 'visibility', 'visible'); // make barriers visible on map
-      current_obstacle = turf.buffer(current_mode_barriers[i], 0.005, { units: 'kilometers' }); // turn into turf object
-      current_mode_obstacles.push(current_obstacle); // add to obstacle list
+    for (i=0; i<currentBarriers.length; i++){
+      map.setLayoutProperty(getBarrierID(currentBarriers[i]), 'visibility', 'visible'); // make barriers visible on map
     }
 
     // recalculate based on current route (ie, it calcs a route, check for barriers, recalc route)
     if (routeLine !== undefined && newRequest){
-      recalculateDirections();
+      recalculateDirections(currentBarriers);
     }
   }
 
   // recalc a route
-  function recalculateDirections(){
+  function recalculateDirections(currentBarriers){
     // remove all existing issue points (from past requests)
     for (i=issue_points.length-1; i>=0; i--){
       issue_points = issue_points.pop(); // take them off issue point list
@@ -417,8 +404,8 @@ function recalculateBarriers(){
     }
 
     // check to see if current obstacles are on the route
-    for (i=0; i<current_mode_obstacles.length; i++){
-      if (turf.booleanDisjoint(current_mode_obstacles[i], routeLine) === false){ // checks if they're on the route
+    for (i=0; i<currentBarriers.length; i++){
+      if (turf.booleanDisjoint(convertToTurf(currentBarriers[i]), routeLine) === false){ // checks if they're on the route
         issue_points.push(i); // adds them back into issue points
       }
     }
@@ -448,10 +435,10 @@ function recalculateBarriers(){
     const end_spot = turf.buffer(end_spots, 0.005, { units: 'kilometers' });
 
     // warn users if end spots aren't accessible
-    for (i=0; i<current_mode_obstacles.length; i++){
-      if (turf.booleanDisjoint(current_mode_obstacles[i], end_spot) === false){ // check if it's on a barrier
+    for (i=0; i<currentBarriers.length; i++){
+      if (turf.booleanDisjoint(convertToTurf(currentBarriers[i]), end_spot) === false){ // check if it's on a barrier
         const warning = new mapboxgl.Popup(); // if yes, make a popup
-        popup.setLngLat(current_mode_barriers[i]["geometry"]["coordinates"]) // popup at barrier
+        popup.setLngLat(currentBarriers[i]["geometry"]["coordinates"]) // popup at barrier
             .setMaxWidth("none")
             // warn user it's not accessible
             .setHTML(
@@ -464,7 +451,7 @@ function recalculateBarriers(){
       }
 
     newRequest = false; // request has been fulfilled
-    addWaypoints(issue_points); // add waypoints on any issue points
+    addWaypoints(issue_points, currentBarriers); // add waypoints on any issue points
   }
 
 
@@ -482,8 +469,8 @@ function recenter(){
 // ------------------------------------------Nearest Parking----------------------------------------------
 async function parking(){
   // initialize distance and directions
-  shortestDistance = Number.MAX_VALUE;
-  parkingLotDirections = null;
+  let shortestDistance = Number.MAX_VALUE;
+  let parkingLotDirections = null;
 
   // if user hasn't clicked map, ask them where they are
   if(currentStart === null){
@@ -497,6 +484,7 @@ async function parking(){
             .addTo(map); // add to map
   }
 
+
   // go through all lots and find the closest
   for (i=0; i<parkingLots.length; i++){
     coordinate_list = [currentStart, parkingLots[i]["geometry"]["coordinates"]]; // put user position and lot in a list
@@ -504,6 +492,7 @@ async function parking(){
     url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
             )}?overview=full&steps=true&geometries=geojson&source=first&destination=last&roundtrip=false&access_token=${mapboxgl.accessToken}`;
           
+
     // ask for route
     const query = await fetch(url, {method: 'GET'});
     const response = await query.json();
@@ -516,13 +505,15 @@ async function parking(){
       shortestDistance = currentDistance; // reset shortest distance
       parkingLotDirections = response; // reset lot directions
     } 
+  }
 
-     // update data/visual
-    const routeGeoJSON = turf.featureCollection([
-    turf.feature(parkingLotDirections.trips[0].geometry)]); // make into turf object
-    map.getSource(`route0`).setData(routeGeoJSON); // set route data to url data
-    map.setPaintProperty(`route0`, 'line-color', '#74c476'); // color the route
-}}
+  // update data/visual
+  const routeGeoJSON = turf.featureCollection([
+  turf.feature(parkingLotDirections.trips[0].geometry)]); // make into turf object
+  map.getSource(`route0`).setData(routeGeoJSON); // set route data to url data
+  map.setPaintProperty("route0", "line-color", "#74c476"); // color the route
+  map.setPaintProperty("route0", "line-opacity", 1.0); // color the route
+}
 
 // ------------------------------------------Nearest Rest Areas----------------------------------------------
 async function resting(){
@@ -544,7 +535,6 @@ async function resting(){
   for (i=0; i<restAreaCoordinates.length; i++){
     // make route ask
     coordinate_list = [currentStart, restAreaCoordinates[i]["geometry"]["coordinates"]];
-    console.log (coordinate_list);
     url = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordinate_list.join(';'
             )}?overview=full&steps=true&geometries=geojson&source=first&destination=last&roundtrip=false&access_token=${mapboxgl.accessToken}`;
           
